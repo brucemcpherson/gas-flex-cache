@@ -1,0 +1,1 @@
+import '@mcpher/gas-fakes'

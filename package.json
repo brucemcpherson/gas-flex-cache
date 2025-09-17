@@ -1,0 +1,22 @@
+{
+  "name": "bmglobalcache",
+  "version": "1.0.0",
+  "description": "Apps Script library to inject a proxy for cacheservice using alternative service",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./test/test.js"
+  },
+  "author": "bruce mcpherson",
+  "license": "MIT",
+  "dependencies": {
+    "@mcpher/gas-fakes": "^1.0.18",
+    "@sindresorhus/is": "^7.1.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "devDependencies": {
+    "@mcpher/unit": "^1.1.10"
+  }
+}
