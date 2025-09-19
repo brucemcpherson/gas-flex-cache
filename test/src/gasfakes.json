@@ -1,0 +1,8 @@
+{
+  "manifest": "./appsscript.json",
+  "clasp": "./.clasp.json",
+  "scriptId": "share-across-all-my-folders",
+  "documentId": null,
+  "cache": "/tmp/gas-fakes/cache",
+  "properties": "/tmp/gas-fakes/properties"
+}

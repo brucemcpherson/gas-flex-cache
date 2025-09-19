@@ -1,0 +1,338 @@
+## `GasFlexCache` Reference Documentation
+
+`GasFlexCache` provides a flexible, drop-in replacement for Google Apps Script's `CacheService`. It allows you to use external, persistent caching backends like Upstash Redis while maintaining an API that is consistent with the familiar `CacheService` methods. This enables more flexible and scalable caching strategies for your Apps Script projects.
+
+### gas-fakes and live Apps Script
+
+This project has been developed entirely using [gas-fakes](https://github.com/brucemcpherson/gas-fakes), so works both in Apps Script emulation mode as well as in Live Apps Script. It is provided as an [Apps Script library](https://script.google.com/d/1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0/edit?usp=sharing) (bmGasFlexCache id: 1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0) and from npm if you want to use it with gas-fakes.
+
+### back end caches
+
+This initial release supports [upstash redis](https://upstash.com/). This is an ideal starting point as it offers a generous free starter tier, and a fully **featured redis over http**. Most other Redis offerings run on TCP, so are unsuitable for use with Apps Script. You will need to create an upstash database and get some credentials - it's super easy and even better, it's  free, and GasFlexCache gives you direct access to all redis commands from Apps Script in addition to its drop in cache capabilities.
+
+### Feature Comparison
+
+| Feature | Apps Script `CacheService` | `GasFlexCache` (`CacheDropin`) |
+| :--- | :--- | :--- |
+| **Backend** | Google-managed | External (e.g., Upstash Redis) |
+| **Persistence** | Volatile, non-persistent. Data can be evicted at any time. | Persistent. Data remains until explicitly removed or expired. |
+| **Storage Limits** | 100 KB per item, 10 MB total per cache. | Depends on backend plan (Upstash free tier: 256 MB). |
+| **Max Expiration** | 6 hours (21,600 seconds). | Effectively unlimited (depends on backend). |
+| **Partitioning** | `getScriptCache()`<br>`getUserCache()`<br>`getDocumentCache()` | Emulated via `scriptId`, `userId`, `documentId` properties. Adds a `family` property for cross-application partitioning. |
+| **API** | Standard `get`, `put`, `getAll`, etc. | Identical API for drop-in compatibility. |
+| **Environment** | Live Apps Script & local Node.js (via `gas-fakes`). | Live Apps Script & local Node.js (via `gas-fakes`). |
+| **Data Sharing** | Strictly isolated by script and optionally by user or document. | Can be configured to share data between different scripts, users or applications in any combination. |
+| **Cross Platform sharing** | data only shareable amongst apps scripts | cross platform - you could share data between apps script and any other platform |
+| **Redis compatability** | n/a | [direct access to all of redis commands supported by upstash](https://upstash.com/docs/redis/overall/rediscompatibility) |
+
+
+
+***
+
+### Getting Started
+
+#### on apps script
+
+- Add the [Apps Script library](https://script.google.com/d/1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0/edit?usp=sharing) to your project
+- get your free redis database from upstash, and add your credentials to the property store as described below.
+- add a shortcut to the dropin class
+```javascript
+var newCacheDropin = bmGasFlexCache.newCacheDropin
+````
+
+#### on Node with gas-fakes
+
+- see the [gas-fakes](https://github.com/brucemcpherson/gas-fakes) repo for how to set up auth.
+- the shells folder in this repo contains a script to help set up Application Default credentials for you
+- install @mcpher/gas-flex-cache with npm
+- import { newCacheDropin } from '@mcpher/gas-flex-cache'
+
+#### 1. Storing Credentials
+
+Your backend credentials should be stored securely. For both Apps Script and gas-fakes, `PropertiesService` is a good choice.
+
+```javascript
+// This is a one-off operation to store your credentials securely.
+// In the Apps Script IDE, run this function once to set it up.
+function setUpstashSecrets() {
+  PropertiesService.getScriptProperties().setProperty("dropin_upstash_credentials", JSON.stringify({
+    "type": "upstash",
+    "token": "YOUR_UPSTASH_TOKEN",
+    "url": "YOUR_UPSTASH_URL"
+  }));
+}
+```
+
+#### 2. Basic Usage
+
+```javascript
+
+// Retrieve your stored credentials
+const creds = PropertiesService.getScriptProperties().getProperty("dropin_upstash_credentials");
+const upstashCreds = JSON.parse(creds);
+
+// Create a cache instance
+const cache = newCacheDropin(upstashCreds);
+
+// Now use it like you would use CacheService
+cache.put('some_key', 'some value');
+const value = cache.get('some_key'); // 'some value'
+```
+
+### Usage Examples & Recipes
+
+Here are some common patterns for configuring `CacheDropin`.
+
+#### Emulating `CacheService.getScriptCache()`
+
+This creates a cache that is partitioned by the script's ID. All users of this script will share the same cache.
+
+```javascript
+const scriptCacheCreds = { 
+  ...upstashCreds, 
+  scriptId: ScriptApp.getScriptId(), 
+  defaultExpirationSeconds: 3600 // optional: 1 hour
+};
+const scriptCache = newCacheDropin(scriptCacheCreds);
+```
+
+#### Emulating `CacheService.getUserCache()`
+
+This creates a cache partitioned by both script ID and user ID. Each user gets their own private cache within the script.
+
+To avoid storing sensitive information like email addresses, or if your script runs without requiring user authentication, you can generate and store a unique, anonymous ID for each user in their `UserProperties`.
+
+```javascript
+function getAnonymousUserId() {
+  const userProperties = PropertiesService.getUserProperties();
+  const userKey = 'GasFlexCache_anonymous_id';
+  let userId = userProperties.getProperty(userKey);
+  if (!userId) {
+    userId = Utilities.getUuid();
+    userProperties.setProperty(userKey, userId);
+  }
+  return userId;
+}
+
+const userCacheCreds = { 
+  ...upstashCreds, 
+  scriptId: ScriptApp.getScriptId(), 
+  userId: getAnonymousUserId(),
+  defaultExpirationSeconds: 3600 
+};
+const userCache = newCacheDropin(userCacheCreds);
+```
+
+#### Emulating `CacheService.getDocumentCache()`
+
+For container-bound scripts (e.g., in a Google Doc), this creates a cache partitioned by the document's ID.
+
+```javascript
+const activeDocument = DocumentApp.getActiveDocument();
+if (activeDocument) {
+  const documentCacheCreds = { 
+    ...upstashCreds, 
+    scriptId: ScriptApp.getScriptId(), 
+    documentId: activeDocument.getId(),
+    defaultExpirationSeconds: 3600 
+  };
+  const documentCache = newCacheDropin(documentCacheCreds);
+}
+```
+
+#### Partitioning by Project (`family`)
+
+The `family` property provides a custom namespace. This is useful for isolating data for different projects or environments (e.g., "dev", "prod") that share the same Redis database. The family can be added in combination with any of the ids already mentioned. Even if you don't plan to use it initially, I recommend you use it from the start if you want to avoid creating multiple databse instances. 
+
+```javascript
+const familyCacheCreds = { 
+  ...upstashCreds, 
+  family: "my-project-name-v1"
+};
+const projectCache = newCacheDropin(familyCacheCreds);
+// This cache is isolated from other caches that don't share the same `family`.
+```
+
+#### Advanced: Cross-Application User Cache
+
+By omitting the `scriptId`, you can create a cache for a user that is shared across multiple different scripts.
+
+```javascript
+// Share a cache for a specific user across multiple different scripts
+const singleUserCreds = {
+  ...upstashCreds, 
+  userId: 'user@example.com' // Use a stable ID like an email
+};
+const crossAppUserCache = newCacheDropin(singleUserCreds);
+```
+
+#### Advanced: Replacing a native cacheservice
+
+You can replace an existin cacheservice with a drop in. Because the API is exactly the same, this will allow you to try it out without actually changing any code. In this example we'll replace the ScriptCache.
+
+```javascript
+const scriptCacheCreds = { 
+  ...upstashCreds, 
+  scriptId: ScriptApp.getScriptId(), 
+  defaultExpirationSeconds: 3600 // optional: 1 hour
+};
+const CacheService.ScriptCache = () => newCacheDropin(scriptCacheCreds);
+```
+
+#### Advanced: adding to cacheservice
+
+You may use CacheService[store]() type syntax to get vraiable stores. You can do this by adding a method to the CacheService object. I recommend you prefix '__' to the name to differentiate from native CacheService methods. In this example, we're adding an enhanced scriptCache service that doesn't expire.
+
+```javascript
+const scriptCacheCreds = { 
+  ...upstashCreds, 
+  scriptId: ScriptApp.getScriptId()
+};
+CacheService.__scriptCache = () => newCacheDropin(scriptCacheCreds);
+```
+
+#### Advanced: Using redis directly
+
+Although the main focus of this library so is to provide an alternative droping for the apps script cache service, it features a full [redis client](https://upstash.com/docs/redis/overall/rediscompatibility) which you can now access all of [redis's commands](https://redis.io/commands/) **directly from Apps Script**
+
+Single commands are provided via an array, the first element is the command, and the rest are arguments. Here's a few examples from the unit tests. 
+
+via cacheDropin.client.request([commands])
+
+```javascript
+    const redis = const cache = newCacheDropin(upstashCreds).client
+    const someKey = "some-key-foo"
+    const someValue = "bar"
+
+    t.deepEqual(redis.request((["set", someKey, someValue])), [{ result: "OK" }])
+    t.deepEqual(redis.request(["get", someKey]), [{ result: someValue }])
+    t.deepEqual(redis.request(["del", someKey]), [{ result: 1 }])
+
+```
+
+Pipelining is also supported using an array of arrays of commands
+
+via cacheDropin.client.pipeline([[commands],[more commands],...])
+
+
+```javascript
+
+    t.deepEqual(redis.pipeline([
+      ["set", "fromage", "french"],
+      ["set", "queso", "spanish"],
+      ["sadd", "cheeseboard", "fromage", "queso"]
+    ]), [{ result: "OK" }, { result: "OK" }, { result: 2 }])
+
+    t.deepEqual(
+      redis.request(["smembers", someSet])[0].result.sort(),
+      ["fromage", "queso"],
+      "order from redis.smembers is not guaranteed so we'll sort the expected"
+    )
+```
+
+Note that when you are using redis directly, there is of course no id based partitioned of the type mentioned earlier in cache dropin mode. 
+
+
+***
+
+## `CacheDropin` Class
+
+This is the main class you will interact with. It serves as a factory and wrapper for the specific cache client implementation (like the one for Upstash).
+
+### `newCacheDropin(externalService)`
+
+Creates and initializes a new cache instance.
+
+*   **`externalService`** `(Object)`: A required configuration object that defines the caching backend and its properties.
+
+
+#### `externalService` Configuration Object
+
+This object tells `CacheDropin` which backend to use and how to configure it.
+
+*   **`type`** `(string)`: **Required**. The type of the backend service. Currently, the only supported value is `'upstash'`.
+*   **`name`** `(string)`: An optional friendly name for the cache instance. Defaults to the `type`.
+*   **`defaultExpirationSeconds`** `(number)`: An optional default expiration time in seconds for items added to the cache via `put()` and `putAll()`. If not provided, items will not expire by default.
+*   **Partitioning Properties**: These optional string properties allow you to create isolated cache namespaces within the same backend database, emulating the behavior of Google's `ScriptCache`, `UserCache`, and `DocumentCache`.
+    *   **`family`** `(string)`: A general-purpose identifier to partition the cache. This is useful for separating data from different applications using the same Redis database.
+    *   **`scriptId`** `(string)`: Used to emulate `CacheService.getScriptCache()`, restricting cache access to instances sharing the same `scriptId`.
+    *   **`userId`** `(string)`: Used to emulate `CacheService.getUserCache()`, restricting cache access to a specific user. For a full emulation, `scriptId` should also be set.
+    *   **`documentId`** `(string)`: Used to emulate `CacheService.getDocumentCache()`, restricting cache access to a specific document. For a full emulation, `scriptId` should also be set.
+
+**Example Configuration:**
+
+```javascript
+const creds = {
+  "type": "upstash",
+  "token": "YOUR_UPSTASH_TOKEN",
+  "url": "YOUR_UPSTASH_URL"
+};
+
+// A cache partitioned for a specific user in a specific script
+const userCache = newCacheDropin({
+  ...creds,
+  scriptId: 'MY_UNIQUE_SCRIPT_ID',
+  userId: 'user@example.com',
+  family: 'my-app-v1',
+  defaultExpirationSeconds: 3600 // 1 hour
+});
+```
+
+### Properties
+
+*   **`.type`**: The type of the external service (e.g., `'upstash'`).
+*   **`.name`**: The name of the external service.
+*   **`.scriptId`**: The script ID for partitioning. Defaults to `'s'`.
+*   **`.documentId`**: The document ID for partitioning. Defaults to `'c'`.
+*   **`.userId`**: The user ID for partitioning. Defaults to `'u'`.
+*   **`.family`**: The family for partitioning. Defaults to `'p'`.
+*   **`.defaultExpirationSeconds`**: The configured default expiration time in seconds.
+
+### Methods
+
+The `CacheDropin` class provides the standard Google Apps Script `CacheService` methods.
+
+*   **`get(key)`**: Retrieves a value from the cache. Returns `null` if the key is not found.
+*   **`getAll(keys)`**: Retrieves multiple values from the cache. Returns an object containing the key/value pairs for the keys that were found.
+*   **`put(key, value, [expirationInSeconds])`**: Puts a single key/value pair into the cache.
+    *   `expirationInSeconds` `(number)`: (Optional) The time in seconds for the item to live. Overrides `defaultExpirationSeconds`.
+*   **`putAll(object, [expirationInSeconds])`**: Puts multiple key/value pairs into the cache.
+    *   `expirationInSeconds` `(number)`: (Optional) The time in seconds for the items to live. Overrides `defaultExpirationSeconds`.
+*   **`remove(key)`**: Removes a single item from the cache.
+*   **`removeAll(keys)`**: Removes multiple items from the cache.
+
+***
+
+## `Upstash` Client
+
+This class is the internal implementation that communicates with the Upstash Redis REST API. You do not interact with it directly, but configure it via the `CacheDropin` `externalService` object.
+
+### Configuration
+
+When `type` is `'upstash'`, the following properties are required in the `externalService` object:
+
+*   **`url`** `(string)`: The REST API URL for your Upstash database (e.g., `https://<region>-<name>-<id>.upstash.io`).
+*   **`token`** `(string)`: The read/write REST API token for your Upstash database.
+
+### Key Generation and Partitioning
+
+The `Upstash` client creates a unique Redis key for each item to ensure that different cache partitions do not conflict.
+
+The key is constructed as:
+`[family]:[documentId]:[scriptId]:[userId]-[your_key]`
+
+The default values from `CacheDropin` are used if the partitioning properties are not provided in the configuration. For example, a key `my-key` in a default cache instance would be stored in Redis as `p:c:s:u-my-key`.
+
+### Data Storage
+
+All values are stored in Redis as JSON strings in the format `{"key":"...","value":"..."}`. This allows the client to store complex objects and perform integrity checks on retrieval.
+
+### Cache Method Implementation Details
+
+The standard cache methods are mapped to Upstash REST API commands:
+
+*   `get(key)` / `getAll(keys)`: Uses the `MGET` command.
+*   `put(key, ...)` / `putAll(object, ...)`: Uses a `PIPELINE` of `SET` commands. If an expiration is provided, the `EX` option is included.
+*   `remove(key)` / `removeAll(keys)`: Uses the `DEL` command.
+
+All communication with the Upstash API is performed using Google Apps Script's `UrlFetchApp` service (or if running on Node, then the gas-fake emulation of `UrlFetchApp`).

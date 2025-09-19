@@ -1,15 +1,16 @@
 {
-  "name": "bmglobalcache",
+  "name": "@mcpher/gas-flex-cache",
   "version": "1.0.0",
-  "description": "Apps Script library to inject a proxy for cacheservice using alternative service",
+  "description": "Alternative caching options for Google Apps Script",
   "main": "index.js",
   "scripts": {
-    "test": "node ./test/test.js"
+    "test": "node ./test/src/test.js",
+    "pub": "npm publish --access public"
   },
   "author": "bruce mcpherson",
   "license": "MIT",
   "dependencies": {
-    "@mcpher/gas-fakes": "^1.0.18",
+    "@mcpher/gas-fakes": "^1.0.19",
     "@sindresorhus/is": "^7.1.0"
   },
   "type": "module",
