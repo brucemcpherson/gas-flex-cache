@@ -93,6 +93,7 @@ const test = () => {
     t.deepEqual(cup.getAll(okeys), cheeses)
     t.deepEqual(cup.getAll(['spanish', 'chinese']), { spanish: 'queso' })
     t.is(cup.removeAll(okeys), null)
+ 
 
   })
 
@@ -244,7 +245,8 @@ const test = () => {
       "order from redis.smembers is not guaranteed so we'll sort the expected"
     )
 
-    // note above - may be an upstash bug that deleting the key of a set does not add to the delete count
+    t.deepEqual ( redis.request(["del", someSet, "fromage", "queso"]), [{result: 3}], 'clean up')
+
   })
 
   unit.report()

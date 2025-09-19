@@ -93,6 +93,7 @@ const test = () => {
     t.deepEqual(cup.getAll(okeys), cheeses)
     t.deepEqual(cup.getAll(['spanish', 'chinese']), { spanish: 'queso' })
     t.is(cup.removeAll(okeys), null)
+ 
 
   })
 
@@ -218,11 +219,11 @@ const test = () => {
   })
 
   unit.section(`direct redis access`, t => {
-    
+
     const redis = cup.client
     const someKey = "some-key-foo"
     const someValue = "bar"
-    
+
     t.deepEqual(redis.request((["set", someKey, someValue])), [{ result: "OK" }])
     t.deepEqual(redis.request(["get", someKey]), [{ result: someValue }])
     t.deepEqual(redis.request(["del", someKey]), [{ result: 1 }])
@@ -235,16 +236,17 @@ const test = () => {
     t.deepEqual(redis.pipeline([
       ["set", "fromage", "french"],
       ["set", "queso", "spanish"],
-      ["sadd", "cheeseboard", "fromage", "queso"],
-      ["smembers", "cheeseboard"]
-    ]), [{result:"OK"},{result:"OK"},{result:2},{result:["fromage","queso"]}], 'add some values to a set')
+      ["sadd", "cheeseboard", "fromage", "queso"]
+    ]), [{ result: "OK" }, { result: "OK" }, { result: 2 }])
 
-    t.deepEqual(redis.pipeline([
-      ["srem", someSet,"fromage", "queso"],
-      ["del", "queso", "fromage",someSet]
-    ]), [{result:2},{result:2}], "clear up set")
+    t.deepEqual(
+      redis.request(["smembers", someSet])[0].result.sort(),
+      ["fromage", "queso"],
+      "order from redis.smembers is not guaranteed so we'll sort the expected"
+    )
 
-    // note above - may be an upstash bug that deleting the key of a set does not add to the delete count
+    t.deepEqual ( redis.request(["del", someSet, "fromage", "queso"]), [{result: 3}], 'clean up')
+
   })
 
   unit.report()
