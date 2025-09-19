@@ -1,0 +1,10 @@
+gasstaging
+appsscript.json
+imports.js
+togas.sh
+node_modules
+npmtest
+secrets
+shells
+test
+.env

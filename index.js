@@ -1,2 +1,2 @@
 import '@mcpher/gas-fakes'
-export { newCacheDropin } from '../src/cachedropin.js'
+export { newCacheDropin } from './gasflex/src/cachedropin.js'

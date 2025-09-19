@@ -1,6 +1,6 @@
 {
   "name": "@mcpher/gas-flex-cache",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Alternative caching options for Google Apps Script",
   "main": "index.js",
   "scripts": {
