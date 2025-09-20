@@ -74,13 +74,13 @@ function setUpstashSecrets() {
 
 ```javascript
 // Retrieve your stored credentials
-const creds = PropertiesService.getScriptProperties().getProperty(
+const pc = PropertiesService.getScriptProperties().getProperty(
   "dropin_upstash_credentials"
 );
-const upstashCreds = JSON.parse(creds);
+const creds = JSON.parse(pc);
 
 // Create a cache instance
-const cache = newCacheDropin(upstashCreds);
+const cache = newCacheDropin({creds});
 
 // Now use it like you would use CacheService
 cache.put("some_key", "some value");
@@ -98,14 +98,13 @@ This creates a cache that is partitioned by the script's ID. All users of this s
 - In apps script it is the actual scriptId
 - In gas-fakes the scriptId is in gasfakes.json (which is created automatically). It will be its Apps Script counterpart's scriptId if it can find a .clasp.json to get it from, otherwise it'll be a random value.
 
-
 ```javascript
 const scriptCacheCreds = {
   ...upstashCreds,
   scriptId: ScriptApp.getScriptId(),
   defaultExpirationSeconds: 3600, // optional: 1 hour
 };
-const scriptCache = newCacheDropin(scriptCacheCreds);
+const scriptCache = newCacheDropin({creds: scriptCacheCreds});
 ```
 
 #### Emulating `CacheService.getUserCache()`
@@ -132,7 +131,7 @@ const userCacheCreds = {
   userId: getAnonymousUserId(),
   defaultExpirationSeconds: 3600,
 };
-const userCache = newCacheDropin(userCacheCreds);
+const userCache = newCacheDropin({creds:userCacheCreds});
 ```
 
 #### Emulating `CacheService.getDocumentCache()`
@@ -148,7 +147,7 @@ if (activeDocument) {
     documentId: activeDocument.getId(),
     defaultExpirationSeconds: 3600,
   };
-  const documentCache = newCacheDropin(documentCacheCreds);
+  const documentCache = newCacheDropin({creds:documentCacheCreds});
 }
 ```
 
@@ -161,7 +160,7 @@ const familyCacheCreds = {
   ...upstashCreds,
   family: "my-project-name-v1",
 };
-const projectCache = newCacheDropin(familyCacheCreds);
+const projectCache = newCacheDropin({creds:familyCacheCreds});
 // This cache is isolated from other caches that don't share the same `family`.
 ```
 
@@ -175,25 +174,25 @@ const singleUserCreds = {
   ...upstashCreds,
   userId: "user@example.com", // Use a stable ID like an email
 };
-const crossAppUserCache = newCacheDropin(singleUserCreds);
+const crossAppUserCache = newCacheDropin({creds: singleUserCreds});
 ```
 
 #### Advanced: Sharing data between Node and Apps Script
 
-By adding the Apps Script scriptId to gas-fakes.json, they can both share the same cache data.
+By adding the real Apps Script scriptId to gas-fakes.json, they can both share the same cache data.
 
 ```javascript
-// Share a cache for a specific user across multiple different scripts
-const singleUserCreds = {
+// Share a cache for a specific user across platorms for the same script
+const sharingCreds = {
   ...upstashCreds,
   scriptId: ScriptApp.getScriptId()
 };
-const crossAppUserCache = newCacheDropin(singleUserCreds);
+const sharingCache = newCacheDropin({creds: sharingCreds});
 ```
 
 #### Advanced: Replacing a native cacheservice
 
-You can replace an existin cacheservice with a drop in. Because the API is exactly the same, this will allow you to try it out without actually changing any code. In this example we'll replace the ScriptCache.
+You can replace an existing cacheservice with a drop in. Because the API is exactly the same, this will allow you to try it out without actually changing any code. In this example we'll replace the ScriptCache.
 
 ```javascript
 const scriptCacheCreds = {
@@ -201,31 +200,31 @@ const scriptCacheCreds = {
   scriptId: ScriptApp.getScriptId(),
   defaultExpirationSeconds: 3600 // optional: 1 hour
 };
-const CacheService.ScriptCache = () => newCacheDropin(scriptCacheCreds);
+const CacheService.ScriptCache = () => newCacheDropin({creds:scriptCacheCreds});
 ```
 
 #### Advanced: adding to cacheservice
 
-You may use CacheService[store]() type syntax to get varaiable stores. You can do this by adding a method to the CacheService object. I recommend you prefix '\_\_' to the name to differentiate from native CacheService methods. In this example, we're adding an enhanced scriptCache service that doesn't expire.
+You may extend the CacheService to add new kinds of stores. You can do this by adding a method to the CacheService object. I recommend you prefix '\_\_' to the name to differentiate from native CacheService methods. In this example, we're adding an enhanced scriptCache service that doesn't expire.
 
 ```javascript
 const scriptCacheCreds = {
   ...upstashCreds,
   scriptId: ScriptApp.getScriptId(),
 };
-CacheService.__scriptCache = () => newCacheDropin(scriptCacheCreds);
+CacheService.__scriptCache = () => newCacheDropin({creds:scriptCacheCreds});
 ```
 
 #### Advanced: Using redis directly
 
-Although the main focus of this library so is to provide an alternative droping for the apps script cache service, it features a full [redis client](https://upstash.com/docs/redis/overall/rediscompatibility) which you can now access all of [redis's commands](https://redis.io/commands/) **directly from Apps Script**
+Although the main focus of this library is to provide an alternative drop-in for the apps script cache service, it features a full [redis client](https://upstash.com/docs/redis/overall/rediscompatibility) which you can now access all of [redis's commands](https://redis.io/commands/) **directly from Apps Script**
 
 Single commands are provided via an array, the first element is the command, and the rest are arguments. Here's a few examples from the unit tests.
 
 via cacheDropin.client.request([commands])
 
 ```javascript
-    const redis = const cache = newCacheDropin(upstashCreds).client
+    const redis = const cache = newCacheDropin({creds:upstashCreds}).client
     const someKey = "some-key-foo"
     const someValue = "bar"
 
