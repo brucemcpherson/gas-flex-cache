@@ -1,26 +1,27 @@
 {
   "timeZone": "Europe/London",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/script.external_request"
+  ],
   "dependencies": {
     "libraries": [
       {
         "userSymbol": "bmIs",
-        "version": "5",
         "libraryId": "1tFa7Gc68142wiiZaNmj0zA-ELDHh0q31eDXodeeCf1LxRR1LeSr3opAd",
-        "developmentMode": false
+        "version": "5"
       },
       {
         "userSymbol": "bmUnitTester",
-        "version": "20",
-        "libraryId": "1zOlHMOpO89vqLPe5XpC-wzA9r5yaBkWt_qFjKqFNsIZtNJ-iUjBYDt-x"
+        "libraryId": "1zOlHMOpO89vqLPe5XpC-wzA9r5yaBkWt_qFjKqFNsIZtNJ-iUjBYDt-x",
+        "version": "20"
       },
       {
         "userSymbol": "bmGasFlexCache",
-        "version": "4",
         "libraryId": "1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0",
-        "developmentMode": false
+        "version": "7"
       }
     ]
-  },
-  "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8"
+  }
 }

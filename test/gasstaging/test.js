@@ -28,15 +28,20 @@ const test = () => {
 
   // these are held in property service in both gas-fakes and live apps script
   const upstashKey = "dropin_upstash_credentials"
-  const creds = PropertiesService.getScriptProperties().getProperty(upstashKey)
-  if (!creds) {
+  const crs = PropertiesService.getScriptProperties().getProperty(upstashKey)
+  if (!crs) {
     throw new Error('failed to find ${upstashKey} in properties}')
   }
+  const creds = JSON.parse(crs)
+
+  // test the fetcher options too
+  const fetcher = UrlFetchApp.fetch
+
   // we can either modify the cacheservice by simply adding a new service to it
   // in order to avoid accidentally overwriting anything, precede the name with __
   // gas-fakes checks for this, but apps script will not.
   // alternatively you can make some new service
-  CacheService.__getUpstashCache = () => newCacheDropin(JSON.parse(creds))
+  CacheService.__getUpstashCache = () => newCacheDropin({ creds, fetcher })
 
   const caches = ['getScriptCache', 'getUserCache', '__getUpstashCache'].map(c => CacheService[c]())
   const cup = caches[2]
@@ -98,7 +103,6 @@ const test = () => {
   })
 
   unit.section('check that cache partitioning works', t => {
-    const credsObject = JSON.parse(creds)
     const key = 'somekey'
 
     const cacheConfigs = [
@@ -111,7 +115,7 @@ const test = () => {
 
     const caches = cacheConfigs.map(cc => ({
       ...cc,
-      instance: newCacheDropin({ ...credsObject, ...cc.config })
+      instance: newCacheDropin({ creds: {...creds, ...cc.config } })
     }))
 
     // clean up from previous runs
@@ -135,7 +139,7 @@ const test = () => {
   })
 
   unit.section('check that bulk methods also respect partitioning', t => {
-    const credsObject = JSON.parse(creds)
+
 
     const dataSets = [
       { d: { k1: 'v1.1', k2: 'v1.2' }, name: 'default', config: {} },
@@ -149,7 +153,7 @@ const test = () => {
 
     const caches = dataSets.map(ds => ({
       ...ds,
-      instance: newCacheDropin({ ...credsObject, ...ds.config })
+      instance: newCacheDropin({ creds: {...creds, ...ds.config } })
     }))
 
     // clean up from previous runs using removeAll
@@ -173,9 +177,9 @@ const test = () => {
   })
 
   unit.section('check expiration works', t => {
-    const credsObject = JSON.parse(creds)
-    const cache = newCacheDropin(credsObject)
-    const partitionedCache = newCacheDropin({ ...credsObject, family: 'expiring-family' })
+
+    const cache = newCacheDropin({creds})
+    const partitionedCache = newCacheDropin({ creds: {...creds, family: 'expiring-family'}, fetcher })
     const key = 'expiring-key'
     const value = 'expiring-value'
     const expirationInSeconds = 3 // use a short expiration

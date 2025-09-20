@@ -5,15 +5,18 @@ var newCacheDropin = (...args) => new CacheDropin(...args)
 
 class CacheDropin {
 
-  constructor(externalService) {
+  constructor(config) {
     // this is the apps script cacheservice to fake
     this.supportedServices = {
       upstash: () => newUpstash(this)
     }
     const supportedTypes = Reflect.ownKeys(this.supportedServices)
-    this.externalService = externalService
+    assert.nonEmptyObject(config)
+    this.externalService = config.creds
 
-    assert.object(this.externalService)
+    // we accept a custom fetcher, but normally it would be just this usual one
+    this.fetcher = config.fetcher || UrlFetchApp.fetch
+
     assert.nonEmptyObject(this.externalService)
     assert.nonEmptyString(this.externalService.type)
     if (!supportedTypes.includes(this.externalService.type)) {

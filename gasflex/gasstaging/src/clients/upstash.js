@@ -9,6 +9,11 @@ const newUpstash = (...args) => new Upstash(...args)
 class Upstash {
   constructor(cacheDropin) {
     this.cacheDropin = cacheDropin
+    this.fetcher = this.cacheDropin.fetcher
+    if (!is.function (this.fetcher)) {
+      // try to avoid caller thinking this is reerved scope
+      throw new Error (`pass a fetcher property to use as fetcher url${'F'}+'etchApp.${'f'}etch`)
+    }
   }
   get url() {
     const url = this.cacheDropin.externalService.url
@@ -25,7 +30,7 @@ class Upstash {
       Authorization: `Bearer ${this.token}`
     }
     // in appss script its a separate option property
-    if (ScriptApp.isFake) {
+    if (Utilities.isFake) {
       headers['Content-Type'] = 'application/json'
     }
     return headers
@@ -68,7 +73,7 @@ class Upstash {
       headers: this.headers
     }
     // in apps script, there's a special prop for this
-    if (!ScriptApp.isFake) {
+    if (!Utilities.isFake) {
       options = {
         ...options,
         muteHttpExceptions: true,
@@ -78,7 +83,7 @@ class Upstash {
     } else {
       options.body = body
     }
-    return UrlFetchApp.fetch(url, options)
+    return this.fetcher(url, options)
   }
   checkResult(response) {
     if (response.getResponseCode() !== 200) {
