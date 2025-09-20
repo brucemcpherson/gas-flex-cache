@@ -3,6 +3,8 @@
   "version": "1.0.3",
   "description": "Alternative caching options for Google Apps Script",
   "main": "index.js",
+   "repository": "github:brucemcpherson/gas-flex-cache",
+  "homepage": "https://ramblings.mcpher.com/supercharge-your-google-apps-script-caching-with-gasflexcache/",
   "scripts": {
     "test": "node ./test/src/test.js",
     "pub": "npm publish --access public"
