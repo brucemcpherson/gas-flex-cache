@@ -47,9 +47,14 @@ var newCacheDropin = bmGasFlexCache.newCacheDropin;
 #### on Node with gas-fakes
 
 - see the [gas-fakes](https://github.com/brucemcpherson/gas-fakes) repo for how to set up auth.
-- the shells folder in this repo contains a script to help set up Apps Script Application Default credentials for you
-- install @mcpher/gas-flex-cache with npm
-- import { newCacheDropin } from '@mcpher/gas-flex-cache'
+- the shells folder in this repo contains a script to help set up Apps Script Application Default credentials
+- install @mcpher/gas-flex-cache
+- if you you are not using @mcpher/gas-fakes yet, you should install that too
+
+```javascript
+  import @mcpher/gas-fakes
+  import { newCacheDropin } from '@mcpher/gas-flex-cache'
+``` 
 
 #### 1. Storing Credentials
 

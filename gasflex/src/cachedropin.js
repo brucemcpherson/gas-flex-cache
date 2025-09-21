@@ -6,6 +6,7 @@ export var newCacheDropin = (...args) => new CacheDropin(...args)
 export class CacheDropin {
 
   constructor(config) {
+
     // this is the apps script cacheservice to fake
     this.supportedServices = {
       upstash: () => newUpstash(this)
@@ -15,8 +16,10 @@ export class CacheDropin {
     this.externalService = config.creds
 
     // we accept a custom fetcher, but normally it would be just this usual one
-    this.fetcher = config.fetcher || UrlFetchApp.fetch
-
+    this.fetcher = config.fetcher || (!is.undefined(globalThis.UrlFetchApp) && globalThis.UrlFetchApp?.fetch)
+    if (!is.function (this.fetcher)) {
+      throw new Error `no fetcher function available - normally we'd use Apps Script or gas-fakes fetch`
+    }
     assert.nonEmptyObject(this.externalService)
     assert.nonEmptyString(this.externalService.type)
     if (!supportedTypes.includes(this.externalService.type)) {

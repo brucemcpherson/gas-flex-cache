@@ -1,7 +1,7 @@
 {
   "name": "@mcpher/gas-flex-cache",
   "version": "1.0.4",
-  "description": "Alternative caching options for Google Apps Script",
+  "description": "Test Alternative caching options for Google Apps Script",
   "main": "index.js",
   "repository": "github:brucemcpherson/gas-flex-cache",
   "homepage": "https://ramblings.mcpher.com/supercharge-your-google-apps-script-caching-with-gasflexcache/",
@@ -12,10 +12,14 @@
   "author": "bruce mcpherson",
   "license": "MIT",
   "dependencies": {
-    "@sindresorhus/is": "^7.1.0"
+    "@sindresorhus/is": "^7.1.0",
+    "@mcpher/gas-fakes": "1.0.19"
   },
   "type": "module",
   "engines": {
     "node": ">=20.11.0"
+  },
+  "devDependencies": {
+    "@mcpher/unit": "^1.1.10"
   }
 }
