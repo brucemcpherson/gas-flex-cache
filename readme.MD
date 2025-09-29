@@ -58,7 +58,7 @@ var newCacheDropin = bmGasFlexCache.newCacheDropin;
 
 #### 1. Storing Credentials
 
-Your backend credentials should be stored securely. For both Apps Script and gas-fakes, `PropertiesService` is a good choice.
+Your backend credentials should be stored securely. For both Apps Script and gas-fakes, `PropertiesService` is a good choice. There's an example script as below in ./test/props.js. Just add your upstash token and url.
 
 ```javascript
 // This is a one-off operation to store your credentials securely.
