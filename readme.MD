@@ -4,29 +4,30 @@
 
 ### gas-fakes and live Apps Script
 
-This project has been developed entirely using [gas-fakes](https://github.com/brucemcpherson/gas-fakes), so works both in Apps Script emulation mode as well as in Live Apps Script. It is provided as an [Apps Script library](https://script.google.com/d/1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0/edit?usp=sharing) (bmGasFlexCache id: 1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0) and from npm if you want to use it with gas-fakes.
+This project has been developed entirely using gas-fakes, so works both in Apps Script emulation mode as well as in Live Apps Script. It is provided as an Apps Script library (bmGasFlexCache id: 1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0) and from npm if you want to use it with gas-fakes.
 
 ### back end caches
 
-This initial release supports [upstash redis](https://upstash.com/). This is an ideal starting point as it offers a generous free starter tier, and a fully **featured redis over http**. Most other Redis offerings run on TCP, so are unsuitable for use with Apps Script. You will need to create an upstash database and get some credentials - it's super easy and even better, it's free, and GasFlexCache gives you direct access to all redis commands from Apps Script in addition to its drop in cache capabilities.
+This initial release supports upstash redis. This is an ideal starting point as it offers a generous free starter tier, and a fully **featured redis over http**. Most other Redis offerings run on TCP, so are unsuitable for use with Apps Script. You will need to create an upstash database and get some credentials - it's super easy and even better, it's free, and GasFlexCache gives you direct access to all redis commands from Apps Script in addition to its drop in cache capabilities.
 
 ### Feature Comparison
 
-| Feature                    | Apps Script `CacheService/PropertiesService`                                                                 | `GasFlexCache` (`CacheDropin`)                                                                                           |
+| Feature | Apps Script `CacheService/PropertiesService` | `GasFlexCache` (`CacheDropin`) |
 | :------------------------- | :----------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| **Backend**                | Google-managed                                                                             | External (e.g., Upstash Redis)                                                                                           |
-| **Persistence**            | Volatile, non-persistent. Data can be evicted at any time.                                 | Persistent. Data remains until explicitly removed or expired.                                                            |
-| **Storage Limits**         | 100 KB per item, 10 MB total per cache.                                                    | Depends on backend plan (Upstash free tier: 256 MB).                                                                     |
-| **Max Expiration**         | 6 hours (21,600 seconds).                                                                  | Effectively unlimited (depends on backend).                                                                              |
-| **Partitioning**           | `getScriptCache()`<br>`getUserCache()`<br>`getDocumentCache()`                             | Emulated via `scriptId`, `userId`, `documentId` properties. Adds a `family` property for cross-application partitioning. |
-| **API**                    | Standard `get`, `put`, `getAll`, etc.                                                      | Identical API for drop-in compatibility.                                                                                 |
-| **Environment**            | Live Apps Script & local Node.js (via `gas-fakes`).                                        | Live Apps Script & local Node.js (via `gas-fakes`).                                                                      |
-| **PropertiesService Emulation** | Native | Yes. Provides aliases (`getProperty`, `setProperty`, etc.) that map to persistent cache methods, emulating `PropertiesService` behavior. |
-| **Data Sharing**           | Strictly isolated by script and optionally by user or document.                            | Can be configured to share data between different scripts, users or applications in any combination.                     |
-| **Cross Platform sharing** | data only shareable amongst apps scripts                                                   | cross platform - you could share data between apps script and any other platform                                         |
-| **Redis compatability**    | n/a                                                                                        | [direct access to all of redis commands supported by upstash](https://upstash.com/docs/redis/overall/rediscompatibility) |
-| **Performance**            | Faster as it remains within Google Insfrastructure - average operation time is about 100ms | Slower, as it has to go to an external Redis - average operation time about 300ms                                        |
-
+| **Backend** | Google-managed | External (e.g., Upstash Redis) |
+| **Persistence** | Volatile, non-persistent. Data can be evicted at any time. Persistent for properties service | Persistent. Data remains until explicitly removed or expired. |
+| **Instances** | 1 for each service | As many instances as you want, with different default attributes|
+| **Storage Limits** | 100 KB per item, 10 MB total per cache. 10k for properties | Depends on backend plan (Upstash free tier: 256 MB). |
+| **Max Expiration** | 6 hours (21,600 seconds) for cacheservice. Unlimited for properties | Effectively unlimited for both (depends on backend). |
+| **Partitioning** | `getScript..()`<br>`getUser..()`<br>`getDocument...()` | Emulated via `scriptId`, `userId`, `documentId` properties. Adds a `family` property for cross-application partitioning. |
+| **API** | Standard `get`, `put`, `getAll`, etc. | Identical API for drop-in compatibility. |
+| **Environment** | Live Apps Script & local Node.js (via `gas-fakes`). | Live Apps Script & local Node.js (via `gas-fakes`). |
+| **PropertiesService Emulation** | Native | Yes. Provides aliases (`getProperty`, `setProperty`, etc.) that map to persistent cache methods, emulating `PropertiesService` behavior.  |
+| **Data Sharing** | Strictly isolated by script and optionally by user or document. | Can be configured to share data between different scripts, users or applications in any combination. |
+| **Cross Platform sharing** | data only shareable amongst apps scripts | cross platform - you could share data between apps script and any other platform |
+| **Redis compatability** | n/a | direct access to all of redis commands supported by upstash |
+| **Performance** | Faster as it remains within Google Insfrastructure - average operation time is about 100ms | Slower, as it has to go to an external Redis - average operation time about 300ms |
+| **write/delete protection** | None | Use a readonly upstash token to prevent accidental update |
 ---
 
 ### Getting Started
@@ -38,7 +39,7 @@ This initial release supports [upstash redis](https://upstash.com/). This is an 
 
 #### on apps script
 
-- Add the [Apps Script library](https://script.google.com/d/1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0/edit?usp=sharing) to your project
+- Add the Apps Script library to your project
 - add a shortcut to the dropin class to your script
 
 ```javascript
@@ -47,7 +48,7 @@ var newCacheDropin = bmGasFlexCache.newCacheDropin;
 
 #### on Node with gas-fakes
 
-- see the [gas-fakes](https://github.com/brucemcpherson/gas-fakes) repo for how to set up auth.
+- see the gas-fakes repo for how to set up auth.
 - the shells folder in this repo contains a script to help set up Apps Script Application Default credentials
 - install @mcpher/gas-flex-cache
 - if you you are not using @mcpher/gas-fakes yet, you should install that too
@@ -170,6 +171,30 @@ const projectCache = newCacheDropin({creds:familyCacheCreds});
 // This cache is isolated from other caches that don't share the same `family`.
 ```
 
+#### Emulating `PropertiesService` for Persistent Storage
+
+Because `GasFlexCache` data is persistent by default (it only expires if you set an expiration time), it can serve as a powerful replacement for `PropertiesService`. For convenience and API consistency, it includes aliases for all the standard `PropertiesService` methods.
+
+```javascript
+// Create an instance to use as a property store
+const propertyStore = newCacheDropin({ creds });
+
+// Use familiar property-style methods
+propertyStore.setProperty('apiKey', 'some_secret_value');
+const apiKey = propertyStore.getProperty('apiKey');
+
+console.log(apiKey); // 'some_secret_value'
+
+// Manage multiple properties at once
+propertyStore.setProperties({
+  settingA: 'valueA',
+  settingB: 'valueB'
+});
+const settings = propertyStore.getProperties(['settingA', 'settingB']);
+
+propertyStore.deleteProperty('apiKey');
+```
+
 #### Advanced: Cross-Application User Cache
 
 By omitting the `scriptId`, you can create a cache for a user that is shared across multiple different scripts.
@@ -223,7 +248,7 @@ CacheService.__scriptCache = () => newCacheDropin({creds:scriptCacheCreds});
 
 #### Advanced: Using redis directly
 
-Although the main focus of this library is to provide an alternative drop-in for the apps script cache service, it features a full [redis client](https://upstash.com/docs/redis/overall/rediscompatibility) which you can now access all of [redis's commands](https://redis.io/commands/) **directly from Apps Script**
+Although the main focus of this library is to provide an alternative drop-in for the apps script cache service, it features a full redis client which you can now access all of redis's commands **directly from Apps Script**
 
 Single commands are provided via an array, the first element is the command, and the rest are arguments. Here's a few examples from the unit tests.
 
@@ -331,6 +356,16 @@ The `CacheDropin` class provides the standard Google Apps Script `CacheService` 
 - **`remove(key)`**: Removes a single item from the cache.
 - **`removeAll(keys)`**: Removes multiple items from the cache.
 
+#### Property Store Aliases
+
+This can also be used as dropin replacement for Property services. For convenience when emulating `PropertiesService`, the following aliases are also available. They map directly to their `CacheService` counterparts but ensure that data is stored without expiration, overriding any `defaultExpirationSeconds`. T
+
+- **`getProperty(key)`**: Alias for `get(key)`.
+- **`getProperties(keys)`**: Alias for `getAll(keys)`.
+- **`setProperty(key, value)`**: Alias for `put(key, value, null)`.
+- **`setProperties(object, [deleteAllOthers])`**: Alias for `putAll(object, null)`. If `deleteAllOthers` is true, it will clear all existing properties in the partition first.
+- **`deleteProperty(key)`**: Alias for `remove(key)`.
+- **`deleteAllProperties()`**: Clears all key-value pairs within the current cache partition.
 ---
 
 ## `Upstash` Client
@@ -371,10 +406,10 @@ All communication with the Upstash API is performed using Google Apps Script's `
 
 ### A Note on Google Workspace vs. Consumer Accounts
 
-You will notice different authorization behavior depending on the type of account running your script. This is a key part of Google's security model if you are using gasflexcache (or any other script) as an apps script library. Since gasflex cache uses UrlFetchApp to communicate with redis, it flags extra scrutiny and nowadays will show an 'unverfied app' warning screen as part of the OAuth consent process.
+You will notice different authorization behavior depending on the type of account running your script. This is a key part of Google's security model if you are using gasflexcache (or any other script) as an apps script library. Since gasflex cache uses UrlFetchApp to communicate with redis, it may flag extra scrutiny and nowadays will show an 'unverfied app' warning screen as part of the OAuth consent process.
 
 - **Google Workspace accounts:** If your script is created by a Google Workspace account you can use a library that uses UrlFetchApp, Google's security model assumes a higher level of trust, so the "unverified app" warning screen is **skipped**. The user proceeds directly to the standard consent screen.
 
-- **Consumer `@gmail.com` accounts:** A consumer account is treated with suspicion, so Google will show the "Google hasn't verified this app" warning screen. You must click "Advanced" to proceed with authorization.
+- **Consumer `@gmail.com` accounts:** A consumer account is treated with suspicion, so Google could show the "Google hasn't verified this app" warning screen. You must click "Advanced" to proceed with authorization.
 
 This behavior is (allegedly) not a bug, but rather the intended (somewhat overzealous) behavior of Google's OAuth and permissions system.
