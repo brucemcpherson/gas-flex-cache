@@ -92,5 +92,27 @@ export class CacheDropin {
   removeAll(...args) {
     return this.client.removeAll(...args)
   }
+
+  // property stores have different names for the same thing
+  deleteAllProperties (...args) {
+    return this.removeAll(...args)
+  }
+  deleteProperty (...args) {
+    return this.remove(...args)
+  } 
+  getProperty (...args) {
+    return this.get(...args)
+  }
+  getProperties (...args) {
+    return this.getAll(...args)
+  }
+  setProperty (...args) {
+    return this.put(...args)
+  }
+
+  setProperties (props, deleteAllOthers = false) {
+    if (deleteAllOthers) this.deleteAllProperties()
+    return this.putAll(props)
+  }
 }
 

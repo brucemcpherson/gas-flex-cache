@@ -12,7 +12,7 @@
   "author": "bruce mcpherson",
   "license": "MIT",
   "dependencies": {
-    "@mcpher/gas-fakes": "^1.0.20",
+    "@mcpher/gas-fakes": "^1.1.6",
     "@sindresorhus/is": "^7.1.0"
   },
   "type": "module",

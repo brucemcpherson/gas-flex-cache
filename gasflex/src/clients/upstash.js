@@ -83,6 +83,7 @@ class Upstash {
     } else {
       options.body = body
     }
+    console.log (url, options)
     return this.fetcher(url, options)
   }
   checkResult(response) {
@@ -108,7 +109,9 @@ class Upstash {
   }
   // emulate cacheservice methods
   get(key) {
+    console.log ('getting', key)
     const values = this.getAll([key])
+    console.log ('got', values)
     return is.undefined(values[key]) ? null : values[key]
   }
 
@@ -138,6 +141,7 @@ class Upstash {
   }
 
   putAll(values, expirationInSeconds = this.defaultExpirationSeconds) {
+    console.log ('putting all', values)
     assert.nonEmptyObject(values)
     const commands = Reflect.ownKeys(values).map(key => {
       const { cacheKey } = this.makeCacheKey(key)
@@ -150,8 +154,9 @@ class Upstash {
       }
       return c
     })
+    console.log ('sending commands', commands)
     const result = this.pipeline(commands)
-
+    console.log ('got result', result)  
     result.forEach(f => {
       if (f.result !== "OK") {
         throw new Error(`failed to write to upstash - got ${f.result}`)
@@ -161,7 +166,10 @@ class Upstash {
     return null
   }
   put(key, value, expirationInSeconds = this.defaultExpirationSeconds) {
-    return this.putAll({ [key]: value }, expirationInSeconds)
+    console.log ('putting', key, value)
+    const r = this.putAll({ [key]: value }, expirationInSeconds)
+    console.log ('returned',r)
+    return r
   }
 
 

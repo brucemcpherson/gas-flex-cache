@@ -1,12 +1,12 @@
 {
   "name": "@mcpher/gas-flex-cache",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Alternative caching options for Google Apps Script",
   "main": "index.js",
   "repository": "github:brucemcpherson/gas-flex-cache",
   "homepage": "https://ramblings.mcpher.com/supercharge-your-google-apps-script-caching-with-gasflexcache/",
   "scripts": {
-    "test": "node ./test/src/test.js",
+    "test": "node --env-file=./.env ./test/src/test.js",
     "pub": "npm publish --access public"
   },
   "author": "bruce mcpherson",
