@@ -95,7 +95,9 @@ export class CacheDropin {
 
   // property stores have different names for the same thing
   deleteAllProperties (...args) {
-    return this.removeAll(...args)
+    // Emulate PropertiesService.deleteAllProperties() which deletes all in the current store
+    // and does not take arguments.
+    return this.client.deleteAllInPartition();
   }
   deleteProperty (...args) {
     return this.remove(...args)
@@ -107,12 +109,13 @@ export class CacheDropin {
     return this.getAll(...args)
   }
   setProperty (...args) {
-    return this.put(...args)
+    // Properties should not expire, so explicitly pass null for expiration
+    return this.put(args[0], args[1], null);
   }
 
   setProperties (props, deleteAllOthers = false) {
     if (deleteAllOthers) this.deleteAllProperties()
-    return this.putAll(props)
+    // Properties should not expire, so explicitly pass null for expiration
+    return this.putAll(props, null);
   }
 }
-

@@ -83,7 +83,7 @@ class Upstash {
     } else {
       options.body = body
     }
-    console.log (url, options)
+
     return this.fetcher(url, options)
   }
   checkResult(response) {
@@ -109,14 +109,20 @@ class Upstash {
   }
   // emulate cacheservice methods
   get(key) {
-    console.log ('getting', key)
-    const values = this.getAll([key])
-    console.log ('got', values)
+
+    // Apps Script getProperty(null) returns null.
+    if (!key) return null;
+
+    const values = this.getAll([key]);
     return is.undefined(values[key]) ? null : values[key]
   }
 
   // get all needs to get all the items belonging to this family
   getAll(keys) {
+    // Apps Script PropertiesService.getProperties([]) returns {}.
+    if (!keys || keys.length === 0) {
+      return {};
+    }
     assert.nonEmptyArray(keys)
     const cacheKeys = keys.map(k => this.makeCacheKey(k).cacheKey)
     const commands = ["mget"].concat(cacheKeys)
@@ -141,7 +147,6 @@ class Upstash {
   }
 
   putAll(values, expirationInSeconds = this.defaultExpirationSeconds) {
-    console.log ('putting all', values)
     assert.nonEmptyObject(values)
     const commands = Reflect.ownKeys(values).map(key => {
       const { cacheKey } = this.makeCacheKey(key)
@@ -154,9 +159,7 @@ class Upstash {
       }
       return c
     })
-    console.log ('sending commands', commands)
     const result = this.pipeline(commands)
-    console.log ('got result', result)  
     result.forEach(f => {
       if (f.result !== "OK") {
         throw new Error(`failed to write to upstash - got ${f.result}`)
@@ -166,25 +169,45 @@ class Upstash {
     return null
   }
   put(key, value, expirationInSeconds = this.defaultExpirationSeconds) {
-    console.log ('putting', key, value)
     const r = this.putAll({ [key]: value }, expirationInSeconds)
-    console.log ('returned',r)
     return r
   }
 
 
   remove(key) {
+    // Apps Script deleteProperty(null) returns null.
+    if (!key) return null;
     return this.removeAll([key])
   }
 
   removeAll(keys) {
-    assert.nonEmptyArray(keys)
-    const cacheKeys = keys.map(k => this.makeCacheKey(k).cacheKey)
+    // If no keys are provided, or an empty array, there's nothing to remove.
+    // Apps Script CacheService.removeAll([]) returns null and does nothing.
+    if (!keys || keys.length === 0) {
+      return null;
+    }
+    // Ensure keys is a non-empty array of strings.
+    assert.nonEmptyArray(keys);
+    keys.forEach(k => assert.nonEmptyString(k));
+
+    const cacheKeys = keys.map(k => this.makeCacheKey(k).cacheKey);
     const commands = ["del"].concat(cacheKeys)
 
     this.__request(commands)
     // the return values is the number of keys deleted
     // apps script silently ignores how many there were, so will we
     return null
+  }
+
+  // New method to delete all keys in the current partition, emulating PropertiesService.deleteAllProperties()
+  deleteAllInPartition() {
+    const pattern = `${this.redisSet}-*`;
+    const keysResult = this.request(["KEYS", pattern]);
+    const keysToDelete = keysResult[0].result;
+    if (keysToDelete && keysToDelete.length > 0) {
+      const commands = ["del"].concat(keysToDelete);
+      this.__request(commands);
+    }
+    return null; // Apps Script deleteAllProperties returns void
   }
 }
