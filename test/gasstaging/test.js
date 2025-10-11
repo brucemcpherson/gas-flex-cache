@@ -98,7 +98,7 @@ const test = () => {
     t.deepEqual(cup.getAll(okeys), cheeses)
     t.deepEqual(cup.getAll(['spanish', 'chinese']), { spanish: 'queso' })
     t.is(cup.removeAll(okeys), null)
- 
+
 
   })
 
@@ -110,12 +110,14 @@ const test = () => {
       { config: { family: 'another-family' }, name: 'family', value: 'value2' },
       { config: { scriptId: 'another-script' }, name: 'scriptId', value: 'value3' },
       { config: { userId: 'another-user' }, name: 'userId', value: 'value4' },
-      { config: { documentId: 'another-doc' }, name: 'documentId', value: 'value5' }
+      { config: { documentId: 'another-doc' }, name: 'documentId', value: 'value5' },
+      { config: { scriptId: 'another-script', kind: "cache" }, name: 'cacheKind', value: 'value6' },
+      { config: { scriptId: 'another-script', kind: "property" }, name: 'propertyKind', value: 'value7' }
     ]
 
     const caches = cacheConfigs.map(cc => ({
       ...cc,
-      instance: newCacheDropin({ creds: {...creds, ...cc.config } })
+      instance: newCacheDropin({ creds: { ...creds, ...cc.config } })
     }))
 
     // clean up from previous runs
@@ -146,14 +148,16 @@ const test = () => {
       { d: { k1: 'v2.1', k2: 'v2.2' }, name: 'family', config: { family: 'another-family' } },
       { d: { k1: 'v3.1', k2: 'v3.2' }, name: 'scriptId', config: { scriptId: 'another-script' } },
       { d: { k1: 'v4.1', k2: 'v4.2' }, name: 'userId', config: { userId: 'another-user' } },
-      { d: { k1: 'v5.1', k2: 'v5.2' }, name: 'documentId', config: { documentId: 'another-doc' } }
+      { d: { k1: 'v5.1', k2: 'v5.2' }, name: 'documentId', config: { documentId: 'another-doc' } },
+      { d: { k1: 'v6.1', k2: 'v6.2' }, name: 'cache', config: { scriptId: 'another-script' , kind: 'cache'} },
+      { d: { k1: 'v7.1', k2: 'v7.2' }, name: 'property', config: { documentId: 'another-script' , kind: 'property'} }
     ]
 
     const allKeys = [...new Set(dataSets.flatMap(ds => Object.keys(ds.d)))]
 
     const caches = dataSets.map(ds => ({
       ...ds,
-      instance: newCacheDropin({ creds: {...creds, ...ds.config } })
+      instance: newCacheDropin({ creds: { ...creds, ...ds.config } })
     }))
 
     // clean up from previous runs using removeAll
@@ -178,8 +182,8 @@ const test = () => {
 
   unit.section('check expiration works', t => {
 
-    const cache = newCacheDropin({creds})
-    const partitionedCache = newCacheDropin({ creds: {...creds, family: 'expiring-family'}, fetcher })
+    const cache = newCacheDropin({ creds })
+    const partitionedCache = newCacheDropin({ creds: { ...creds, family: 'expiring-family' }, fetcher })
     const key = 'expiring-key'
     const value = 'expiring-value'
     const expirationInSeconds = 3 // use a short expiration
@@ -249,12 +253,12 @@ const test = () => {
       "order from redis.smembers is not guaranteed so we'll sort the expected"
     )
 
-    t.deepEqual ( redis.request(["del", someSet, "fromage", "queso"]), [{result: 3}], 'clean up')
+    t.deepEqual(redis.request(["del", someSet, "fromage", "queso"]), [{ result: 3 }], 'clean up')
 
   })
 
   unit.section('check that property store emulation works', t => {
-    const props = newCacheDropin({ creds });
+    const props = newCacheDropin({ creds: { ...creds, kind: 'property' }});
     const key = 'propKey';
     const value = 'propValue';
 
@@ -318,6 +322,11 @@ const test = () => {
     // Verify the properties still exist
     t.is(props.getProperty(key), value, 'setProperty value should persist beyond default expiration');
     t.deepEqual(props.getProperties(bulkKeys), bulkProps, 'setProperties values should persist beyond default expiration');
+
+    // Clean up the created properties
+    props.removeAll([key, ...bulkKeys]);
+    t.is(props.getProperty(key), null, 'persistentKey should be deleted after cleanup');
+    t.deepEqual(props.getProperties(bulkKeys), {}, 'bulk persistent properties should be deleted after cleanup');
   });
 
   unit.report()

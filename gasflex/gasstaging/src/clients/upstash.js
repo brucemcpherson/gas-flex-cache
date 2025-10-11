@@ -36,7 +36,10 @@ class Upstash {
     return headers
   }
   get redisSet() {
-    return [this.cacheDropin.family, this.cacheDropin.documentId, this.cacheDropin.scriptId, this.cacheDropin.userId].join(":")
+    const comp = [this.cacheDropin.family, this.cacheDropin.documentId, this.cacheDropin.scriptId, this.cacheDropin.userId]
+    // this retains backwar compatibility if kind is not specified
+    if (this.cacheDropin.kind) comp.push (this.cacheDropin.kind)
+    return comp.join(":")
   }
   // the actual key we use us a digest of the potential key segreagators
   // this allows not only the emulation of apps script cache partitioning, 

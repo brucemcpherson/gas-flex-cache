@@ -322,6 +322,11 @@ const test = () => {
     // Verify the properties still exist
     t.is(props.getProperty(key), value, 'setProperty value should persist beyond default expiration');
     t.deepEqual(props.getProperties(bulkKeys), bulkProps, 'setProperties values should persist beyond default expiration');
+
+    // Clean up the created properties
+    props.removeAll([key, ...bulkKeys]);
+    t.is(props.getProperty(key), null, 'persistentKey should be deleted after cleanup');
+    t.deepEqual(props.getProperties(bulkKeys), {}, 'bulk persistent properties should be deleted after cleanup');
   });
 
   unit.report()
