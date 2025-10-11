@@ -31,6 +31,9 @@ export class CacheDropin {
     // all of these ids below can be used to precisely define the visibility of cache.
     // setting these allows the same database to contain the same key value in multiple scenarios without conflict
 
+    // setting this value can be used  for emulating either cach or property services
+    if (!is.undefined(this.externalService.kind)) assert.nonEmptyString(this.externalService.kind)
+
     // setting this value can be used to emulate CacheSefvice.ScriptCache and restrict to those sharing the same value
     if (!is.undefined(this.externalService.scriptId)) assert.nonEmptyString(this.externalService.scriptId)
 
@@ -58,6 +61,9 @@ export class CacheDropin {
   }
   get name() {
     return this.externalService.name
+  }
+  get kind() {
+    return this.externalService.kind || ''
   }
   get scriptId() {
     return this.externalService.scriptId || 's'

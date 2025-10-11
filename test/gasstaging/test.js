@@ -253,6 +253,73 @@ const test = () => {
 
   })
 
+  unit.section('check that property store emulation works', t => {
+    const props = newCacheDropin({ creds });
+    const key = 'propKey';
+    const value = 'propValue';
+
+    // Test setProperty/getProperty
+    props.setProperty(key, value);
+    t.is(props.getProperty(key), value, 'getProperty should retrieve the value');
+
+    // Test deleteProperty
+    props.deleteProperty(key);
+    t.is(props.getProperty(key), null, 'getProperty should return null after delete');
+
+    // Test setProperties/getProperties
+    const properties = {
+      p1: 'v1',
+      p2: 'v2',
+      p3: 'v3'
+    };
+    const propKeys = Object.keys(properties);
+
+    props.setProperties(properties);
+    t.deepEqual(props.getProperties(propKeys), properties, 'getProperties should retrieve all properties');
+
+    // Test setProperties with deleteAllOthers = true
+    const newProps = { c: '3', d: '4' };
+    props.setProperties(newProps, true); // deleteAllOthers = true
+    t.deepEqual(props.getProperties(['c', 'd']), newProps, 'should have new properties');
+    t.deepEqual(props.getProperties(propKeys), {}, 'should not have old properties after deleteAllOthers');
+
+    // Test deleteAllProperties (emulating PropertiesService.deleteAllProperties() - no args)
+    // First, set some properties to be deleted
+    props.setProperties({ x: '1', y: '2' });
+    t.deepEqual(props.getProperties(['x', 'y']), { x: '1', y: '2' }, 'should have properties before deleteAllProperties');
+
+    props.deleteAllProperties(); // No arguments, deletes all in the current store
+    t.deepEqual(props.getProperties(['x', 'y']), {}, 'getProperties should return empty object after deleteAllProperties');
+    t.deepEqual(props.getProperties(['c', 'd']), {}, 'getProperties should also clear properties from previous setProperties');
+
+    // Note: If you need to test removing a specific list of properties, use props.removeAll(keys)
+  });
+
+  unit.section('check that properties do not expire', t => {
+    const expirationInSeconds = 3; // A short expiration
+    const expiringCreds = {
+      ...creds,
+      defaultExpirationSeconds: expirationInSeconds
+    };
+
+    const props = newCacheDropin({ creds: expiringCreds });
+    const key = 'persistentKey';
+    const value = 'persistentValue';
+    const bulkProps = { bk1: 'bv1', bk2: 'bv2' };
+    const bulkKeys = Object.keys(bulkProps);
+
+    // Set properties using the property methods
+    props.setProperty(key, value);
+    props.setProperties(bulkProps);
+
+    // Wait longer than the default expiration time
+    Utilities.sleep((expirationInSeconds + 1) * 1000);
+
+    // Verify the properties still exist
+    t.is(props.getProperty(key), value, 'setProperty value should persist beyond default expiration');
+    t.deepEqual(props.getProperties(bulkKeys), bulkProps, 'setProperties values should persist beyond default expiration');
+  });
+
   unit.report()
 }
 

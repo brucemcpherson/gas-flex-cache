@@ -6,6 +6,7 @@ var newCacheDropin = (...args) => new CacheDropin(...args)
 class CacheDropin {
 
   constructor(config) {
+
     // this is the apps script cacheservice to fake
     this.supportedServices = {
       upstash: () => newUpstash(this)
@@ -15,8 +16,10 @@ class CacheDropin {
     this.externalService = config.creds
 
     // we accept a custom fetcher, but normally it would be just this usual one
-    this.fetcher = config.fetcher || UrlFetchApp.fetch
-
+    this.fetcher = config.fetcher || (!is.undefined(globalThis.UrlFetchApp) && globalThis.UrlFetchApp?.fetch)
+    if (!is.function (this.fetcher)) {
+      throw new Error `no fetcher function available - normally we'd use Apps Script or gas-fakes fetch`
+    }
     assert.nonEmptyObject(this.externalService)
     assert.nonEmptyString(this.externalService.type)
     if (!supportedTypes.includes(this.externalService.type)) {
@@ -89,5 +92,30 @@ class CacheDropin {
   removeAll(...args) {
     return this.client.removeAll(...args)
   }
-}
 
+  // property stores have different names for the same thing
+  deleteAllProperties (...args) {
+    // Emulate PropertiesService.deleteAllProperties() which deletes all in the current store
+    // and does not take arguments.
+    return this.client.deleteAllInPartition();
+  }
+  deleteProperty (...args) {
+    return this.remove(...args)
+  } 
+  getProperty (...args) {
+    return this.get(...args)
+  }
+  getProperties (...args) {
+    return this.getAll(...args)
+  }
+  setProperty (...args) {
+    // Properties should not expire, so explicitly pass null for expiration
+    return this.put(args[0], args[1], null);
+  }
+
+  setProperties (props, deleteAllOthers = false) {
+    if (deleteAllOthers) this.deleteAllProperties()
+    // Properties should not expire, so explicitly pass null for expiration
+    return this.putAll(props, null);
+  }
+}

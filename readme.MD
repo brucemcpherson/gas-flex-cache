@@ -19,7 +19,7 @@ This initial release supports upstash redis. This is an ideal starting point as 
 | **Instances** | 1 for each service | As many instances as you want, with different default attributes|
 | **Storage Limits** | 100 KB per item, 10 MB total per cache. 10k for properties | Depends on backend plan (Upstash free tier: 256 MB). |
 | **Max Expiration** | 6 hours (21,600 seconds) for cacheservice. Unlimited for properties | Effectively unlimited for both (depends on backend). |
-| **Partitioning** | `getScript..()`<br>`getUser..()`<br>`getDocument...()` | Emulated via `scriptId`, `userId`, `documentId` properties. Adds a `family` property for cross-application partitioning. |
+| **Partitioning** | `getScript..()`<br>`getUser..()`<br>`getDocument...()` | Emulated via `scriptId`, `userId`, `documentId` properties. Adds a `family` and `kind` property for cross-application partitioning. |
 | **API** | Standard `get`, `put`, `getAll`, etc. | Identical API for drop-in compatibility. |
 | **Environment** | Live Apps Script & local Node.js (via `gas-fakes`). | Live Apps Script & local Node.js (via `gas-fakes`). |
 | **PropertiesService Emulation** | Native | Yes. Provides aliases (`getProperty`, `setProperty`, etc.) that map to persistent cache methods, emulating `PropertiesService` behavior.  |
@@ -31,6 +31,10 @@ This initial release supports upstash redis. This is an ideal starting point as 
 ---
 
 ### Getting Started
+
+#### v1.1.0 potentially breaking change
+
+This adds the 'kind' property, as well as aliases for the Apps Script properties store methods. This means that the redis key defaults have changed and have an extra component. 
 
 #### on upstash
 
@@ -104,11 +108,13 @@ This creates a cache that is partitioned by the script's ID. All users of this s
 
 - In apps script it is the actual scriptId
 - In gas-fakes the scriptId is in gasfakes.json (which is created automatically). It will be its Apps Script counterpart's scriptId if it can find a .clasp.json to get it from, otherwise it'll be a random value.
+- We can optionally use the kind "cache" as additional partitioning. Like this the same store can be used for both properties and caches, yet avoid any potential key collisions.
 
 ```javascript
 const scriptCacheCreds = {
   ...upstashCreds,
   scriptId: ScriptApp.getScriptId(),
+  kind: "cache",
   defaultExpirationSeconds: 3600, // optional: 1 hour
 };
 const scriptCache = newCacheDropin({creds: scriptCacheCreds});
@@ -137,6 +143,7 @@ const userCacheCreds = {
   scriptId: ScriptApp.getScriptId(),
   userId: getAnonymousUserId(),
   defaultExpirationSeconds: 3600,
+  kind: "cache"
 };
 const userCache = newCacheDropin({creds:userCacheCreds});
 ```
@@ -153,6 +160,7 @@ if (activeDocument) {
     scriptId: ScriptApp.getScriptId(),
     documentId: activeDocument.getId(),
     defaultExpirationSeconds: 3600,
+    kind: "cache"
   };
   const documentCache = newCacheDropin({creds:documentCacheCreds});
 }
@@ -177,7 +185,11 @@ Because `GasFlexCache` data is persistent by default (it only expires if you set
 
 ```javascript
 // Create an instance to use as a property store
-const propertyStore = newCacheDropin({ creds });
+const propertyStore = newCacheDropin({ creds : {
+  ...upstashCreds,
+  kind: "properties",
+  scriptId: ScriptApp.getScriptId()
+}});
 
 // Use familiar property-style methods
 propertyStore.setProperty('apiKey', 'some_secret_value');
@@ -223,7 +235,7 @@ const sharingCache = newCacheDropin({creds: sharingCreds});
 
 #### Advanced: Replacing a native cacheservice
 
-You can replace an existing cacheservice with a drop in. Because the API is exactly the same, this will allow you to try it out without actually changing any code. In this example we'll replace the ScriptCache.
+You can replace an existing cacheservice with a drop in. Because the API is exactly the same, this will allow you to try it out without actually changing any code. In this example we'll replace the ScriptCache. Note that if you do this in the live environment, you'll be able to dynamically and programitically change properties depending on how you set up partitioning. This could be both a good and a bad thing, depending on your use case.
 
 ```javascript
 const scriptCacheCreds = {
@@ -313,7 +325,7 @@ This object tells `CacheDropin` which backend to use and how to configure it.
   - **`scriptId`** `(string)`: Used to emulate `CacheService.getScriptCache()`, restricting cache access to instances sharing the same `scriptId`.
   - **`userId`** `(string)`: Used to emulate `CacheService.getUserCache()`, restricting cache access to a specific user. For a full emulation, `scriptId` should also be set.
   - **`documentId`** `(string)`: Used to emulate `CacheService.getDocumentCache()`, restricting cache access to a specific document. For a full emulation, `scriptId` should also be set.
-
+  - **`kind`** `(string)`: Recommended to be used to parition between 'property' and 'cache', or indeed any other kind of store you want to imagine.
 **Example Configuration:**
 
 ```javascript
@@ -329,6 +341,7 @@ const userCache = newCacheDropin({
   scriptId: "MY_UNIQUE_SCRIPT_ID",
   userId: "user@example.com",
   family: "my-app-v1",
+  kind: "cache",
   defaultExpirationSeconds: 3600, // 1 hour
 });
 ```
@@ -341,6 +354,7 @@ const userCache = newCacheDropin({
 - **`.documentId`**: The document ID for partitioning. Defaults to `'c'`.
 - **`.userId`**: The user ID for partitioning. Defaults to `'u'`.
 - **`.family`**: The family for partitioning. Defaults to `'p'`.
+- **`.kind`**: The kind of entry for partitioning. Defaults to `''`.
 - **`.defaultExpirationSeconds`**: The configured default expiration time in seconds.
 
 ### Methods
@@ -384,7 +398,9 @@ When `type` is `'upstash'`, the following properties are required in the `extern
 The `Upstash` client creates a unique Redis key for each item to ensure that different cache partitions do not conflict.
 
 The key is constructed as:
-`[family]:[documentId]:[scriptId]:[userId]-[your_key]`
+`[family]:[documentId]:[scriptId]:[userId]:[kind]-[your_key]`
+
+To retain backwords compataibility, the newly added 'kind' key is omitted if not explicity supplied.
 
 The default values from `CacheDropin` are used if the partitioning properties are not provided in the configuration. For example, a key `my-key` in a default cache instance would be stored in Redis as `p:c:s:u-my-key`.
 
