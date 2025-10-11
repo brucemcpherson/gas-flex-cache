@@ -32,9 +32,10 @@ This initial release supports upstash redis. This is an ideal starting point as 
 
 ### Getting Started
 
-#### v1.1.0 potentially breaking change
+#### v1.1.0 change to redis key structure
 
-This adds the 'kind' property, as well as aliases for the Apps Script properties store methods. This means that the redis key defaults have changed and have an extra component. 
+This adds the 'kind' property, as well as aliases for the Apps Script properties store methods. This means that the redis key components have changed and now have an extra component. However, this will still be backword compatible with previous versions if you simply omit the 'kind' property in instantiation.
+
 
 #### on upstash
 
