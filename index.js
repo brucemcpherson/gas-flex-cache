@@ -1,1 +1,1 @@
-export { newCacheDropin } from './gasflex/src/cachedropin.js'
+export { newCacheDropin, getUserIdFromToken } from './gasflex/src/cachedropin.js'
