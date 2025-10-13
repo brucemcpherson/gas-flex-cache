@@ -49,6 +49,8 @@ This adds the 'kind' property, as well as aliases for the Apps Script properties
 
 ```javascript
 var newCacheDropin = bmGasFlexCache.newCacheDropin;
+// more about this convenience method later...
+var getUserIdFromToken = bmGasFlexCache.getUserIdFromToken;
 ```
 
 #### on Node with gas-fakes
@@ -149,6 +151,28 @@ const userCacheCreds = {
 const userCache = newCacheDropin({creds:userCacheCreds});
 ```
 
+##### Using a real userId
+
+Apps Script doesn't have a method for getting a permanent userId. However it is possible to get the google user Id from an access token. Flex Cache provides a convenience method for that so you can get a stable id whether you are on gas-fakes or apps script.
+
+```javascript
+  import @mcpher/gas-fakes
+  import { newCacheDropin , getUserIdFromToken } from '@mcpher/gas-flex-cache'
+  const userId = getUserIdFromToken(ScriptApp.getOAuthToken())
+``` 
+
+Now you can use this userId instead of an email. 
+```javaScript
+const userCacheCreds = {
+  ...upstashCreds, 
+  scriptId: ScriptApp.getScriptId(),
+  userId: userId,
+  defaultExpirationSeconds: 360 
+}
+const userCache = newCacheDropin({creds:userCacheCreds});
+
+```
+
 #### Emulating `CacheService.getDocumentCache()`
 
 For container-bound scripts (e.g., in a Google Doc), this creates a cache partitioned by the document's ID.
@@ -216,7 +240,7 @@ By omitting the `scriptId`, you can create a cache for a user that is shared acr
 // Share a cache for a specific user across multiple different scripts
 const singleUserCreds = {
   ...upstashCreds,
-  userId: "user@example.com", // Use a stable ID like an email
+  userId: "user@example.com", // Use a stable ID like an email or a userId
 };
 const crossAppUserCache = newCacheDropin({creds: singleUserCreds});
 ```

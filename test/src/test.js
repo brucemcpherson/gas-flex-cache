@@ -1,7 +1,7 @@
 import '@mcpher/gas-fakes'
 import { Exports as unitExports } from '@mcpher/unit'
-import { newCacheDropin } from '../../gasflex/src/cachedropin.js'
-
+import { newCacheDropin , getUserIdFromToken } from '../../gasflex/src/cachedropin.js'
+import is from '@sindresorhus/is';
 
 const test = () => {
   // initialize test suite
@@ -104,6 +104,8 @@ const test = () => {
 
   unit.section('check that cache partitioning works', t => {
     const key = 'somekey'
+    const userId = getUserIdFromToken(ScriptApp.getOAuthToken())
+    t.true (is.nonEmptyString(userId), 'should have got a userid')
 
     const cacheConfigs = [
       { config: {}, name: 'default', value: 'value1' },
@@ -142,12 +144,14 @@ const test = () => {
 
   unit.section('check that bulk methods also respect partitioning', t => {
 
+    const userId = getUserIdFromToken(ScriptApp.getOAuthToken())
+    t.true (is.nonEmptyString(userId), 'should have got a userid')
 
     const dataSets = [
       { d: { k1: 'v1.1', k2: 'v1.2' }, name: 'default', config: {} },
       { d: { k1: 'v2.1', k2: 'v2.2' }, name: 'family', config: { family: 'another-family' } },
       { d: { k1: 'v3.1', k2: 'v3.2' }, name: 'scriptId', config: { scriptId: 'another-script' } },
-      { d: { k1: 'v4.1', k2: 'v4.2' }, name: 'userId', config: { userId: 'another-user' } },
+      { d: { k1: 'v4.1', k2: 'v4.2' }, name: 'userId', config: { userId } },
       { d: { k1: 'v5.1', k2: 'v5.2' }, name: 'documentId', config: { documentId: 'another-doc' } },
       { d: { k1: 'v6.1', k2: 'v6.2' }, name: 'cache', config: { scriptId: 'another-script' , kind: 'cache'} },
       { d: { k1: 'v7.1', k2: 'v7.2' }, name: 'property', config: { documentId: 'another-script' , kind: 'property'} }
