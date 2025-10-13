@@ -3,8 +3,10 @@
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "oauthScopes": [
-    "https://www.googleapis.com/auth/script.external_request"
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/userinfo.email"
   ],
+
   "dependencies": {
     "libraries": [
       {
@@ -20,7 +22,7 @@
       {
         "userSymbol": "bmGasFlexCache",
         "libraryId": "1R_r9n4EGctvA8lWBZVeuT66mgaKBRV5IxfIsD_And-ra2H16iNXVWva0",
-        "version": "9"
+        "version": "7"
       }
     ]
   }

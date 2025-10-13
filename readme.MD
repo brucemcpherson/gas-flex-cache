@@ -49,8 +49,6 @@ This adds the 'kind' property, as well as aliases for the Apps Script properties
 
 ```javascript
 var newCacheDropin = bmGasFlexCache.newCacheDropin;
-// more about this convenience method later...
-var getUserIdFromToken = bmGasFlexCache.getUserIdFromToken;
 ```
 
 #### on Node with gas-fakes
@@ -155,14 +153,32 @@ const userCache = newCacheDropin({creds:userCacheCreds});
 
 Apps Script doesn't have a method for getting a permanent userId. However it is possible to get the google user Id from an access token. Flex Cache provides a convenience method for that so you can get a stable id whether you are on gas-fakes or apps script.
 
+###### Important note about open ID
+The user Id is actually a stable openid value. On gas-fakes, the default scopes include openid, but to be able to get the same value for a user on Apps Script, your appsscript.json manifest needs the scope "openid".
+
+You would need at least these scopes in your app
+```json
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/script.external_request",
+    "openid"
+  ]
+```
+
+We import the getUserIdFromToken on gas-fakes
 ```javascript
   import @mcpher/gas-fakes
   import { newCacheDropin , getUserIdFromToken } from '@mcpher/gas-flex-cache'
-  const userId = getUserIdFromToken(ScriptApp.getOAuthToken())
 ``` 
 
-Now you can use this userId instead of an email. 
+And on apps script
+```javascript
+var getUserIdFromToken = bmGasFlexCache.getUserIdFromToken;
+```
+
+
+Now you can use this stable userId instead of writing an email to redis.
 ```javaScript
+const userId = getUserIdFromToken(ScriptApp.getOAuthToken())
 const userCacheCreds = {
   ...upstashCreds, 
   scriptId: ScriptApp.getScriptId(),

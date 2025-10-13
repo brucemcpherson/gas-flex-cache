@@ -3,6 +3,24 @@
 //import { newUpstash } from './clients/upstash.js'
 var newCacheDropin = (...args) => new CacheDropin(...args)
 
+var getUserIdFromToken = (accessToken) => {
+  const tokenInfo = getTokenInfo(accessToken)
+  if (typeof tokenInfo.sub !== 'string' || !tokenInfo.sub) {
+    throw new Error('failed to get user id from token info')
+  }
+  return tokenInfo.sub
+}
+
+const getTokenInfo = (accessToken) => {
+  if (typeof accessToken !== 'string' || !accessToken) {
+    throw new Error('token is required to getUserIdFromToken')
+  }
+  const response = UrlFetchApp.fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${accessToken}`)
+  if (response.getResponseCode() !== 200) {
+    throw new Error('failed to get token info from token:' + response.getResponseCode() + ':' + response.getContentText())
+  }
+  return JSON.parse(response.getContentText())
+}
 class CacheDropin {
 
   constructor(config) {
@@ -17,8 +35,8 @@ class CacheDropin {
 
     // we accept a custom fetcher, but normally it would be just this usual one
     this.fetcher = config.fetcher || (!is.undefined(globalThis.UrlFetchApp) && globalThis.UrlFetchApp?.fetch)
-    if (!is.function (this.fetcher)) {
-      throw new Error `no fetcher function available - normally we'd use Apps Script or gas-fakes fetch`
+    if (!is.function(this.fetcher)) {
+      throw new Error`no fetcher function available - normally we'd use Apps Script or gas-fakes fetch`
     }
     assert.nonEmptyObject(this.externalService)
     assert.nonEmptyString(this.externalService.type)
@@ -55,6 +73,7 @@ class CacheDropin {
     // make sure it works
     this.client.ping()
   }
+
 
   get type() {
     return this.externalService.type
@@ -100,26 +119,26 @@ class CacheDropin {
   }
 
   // property stores have different names for the same thing
-  deleteAllProperties (...args) {
+  deleteAllProperties(...args) {
     // Emulate PropertiesService.deleteAllProperties() which deletes all in the current store
     // and does not take arguments.
     return this.client.deleteAllInPartition();
   }
-  deleteProperty (...args) {
+  deleteProperty(...args) {
     return this.remove(...args)
-  } 
-  getProperty (...args) {
+  }
+  getProperty(...args) {
     return this.get(...args)
   }
-  getProperties (...args) {
+  getProperties(...args) {
     return this.getAll(...args)
   }
-  setProperty (...args) {
+  setProperty(...args) {
     // Properties should not expire, so explicitly pass null for expiration
     return this.put(args[0], args[1], null);
   }
 
-  setProperties (props, deleteAllOthers = false) {
+  setProperties(props, deleteAllOthers = false) {
     if (deleteAllOthers) this.deleteAllProperties()
     // Properties should not expire, so explicitly pass null for expiration
     return this.putAll(props, null);

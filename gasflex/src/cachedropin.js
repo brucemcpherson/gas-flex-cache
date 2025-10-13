@@ -3,19 +3,21 @@ import { assert } from '@sindresorhus/is'
 import { newUpstash } from './clients/upstash.js'
 export var newCacheDropin = (...args) => new CacheDropin(...args)
 
-export const getUserIdFromToken = (accessToken) => {
+export var getUserIdFromToken = (accessToken) => {
   const tokenInfo = getTokenInfo(accessToken)
-  if (!is.nonEmptyString(tokenInfo.sub)) {
-    throw new Error('failed to get user id from token')
+  if (typeof tokenInfo.sub !== 'string' || !tokenInfo.sub) {
+    throw new Error('failed to get user id from token info')
   }
-return tokenInfo.sub
+  return tokenInfo.sub
 }
 
-export const getTokenInfo = (accessToken) => {
-  if (!is.nonEmptyString(accessToken)) throw new Error('token is required to getUserIdFromToken')
+const getTokenInfo = (accessToken) => {
+  if (typeof accessToken !== 'string' || !accessToken) {
+    throw new Error('token is required to getUserIdFromToken')
+  }
   const response = UrlFetchApp.fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${accessToken}`)
   if (response.getResponseCode() !== 200) {
-    throw new Error('failed to get token info from token')
+    throw new Error('failed to get token info from token:' + response.getResponseCode() + ':' + response.getContentText())
   }
   return JSON.parse(response.getContentText())
 }
