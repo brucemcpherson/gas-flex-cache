@@ -120,26 +120,44 @@ class Upstash {
     return is.undefined(values[key]) ? null : values[key]
   }
 
+  getKeys() {
+    // we should really be using Match then page it here - but apps script property store
+    // only supports a limited number of keys anyway, so this use of Keys should be just fine
+    // the makecachekey request will return the pre so will return all keys associted with this family
+    return this.request (['keys',this.makeCacheKey('*').cacheKey])[0].result
+  }
+
   // get all needs to get all the items belonging to this family
   getAll(keys) {
     // Apps Script PropertiesService.getProperties([]) returns {}.
-    if (!keys || keys.length === 0) {
-      return {};
-    }
-    assert.nonEmptyArray(keys)
-    const cacheKeys = keys.map(k => this.makeCacheKey(k).cacheKey)
-    const commands = ["mget"].concat(cacheKeys)
+    let cacheKeys = []
 
+    // actually if keys is undefined we need to get all properties
+    if (!keys) {
+      // we should really be using Match then page it here - but apps script property store
+      // only supports a limited number of keys anyway, so this use of Keys should be just fine
+      // the makecachekey request will return the pre so will return all keys associted with this family
+      cacheKeys = this.getKeys()
+    } else {
+      assert.nonEmptyArray(keys)
+      cacheKeys = keys.map(k => this.makeCacheKey(k).cacheKey)
+    }
+
+    // if there are no keys, apps script returns {}
+    if (cacheKeys.length === 0) return {} 
+
+    const commands = ["mget"].concat(cacheKeys)
     const {result: values} = this.request(commands)[0]
 
-    // in this case we should have a single result, the length of keys
-
-    if (values.length !== keys.length) {
-      console.log(`expected ${keys.length} values, but got ${values.length} in getAll`)
+    // should have 1 reponse for each key
+    if (values.length !== cacheKeys.length) {
+      console.log(`expected ${cacheKeys.length} values, but got ${values.length} in getAll`)
     }
     const parsed = values.map(f => JSON.parse(f)).reduce((p, f, i) => {
       if (!is.null(f)) {
-        if (keys[i] !== f.key) {
+
+        // double check if specific keys were requested
+        if (keys && keys[i] !== f.key) {
           throw new Error(`expected to get result for key ${keys[i]}, but got ${f.key}`)
         }
         p[f.key] = f.value
@@ -204,9 +222,7 @@ class Upstash {
 
   // New method to delete all keys in the current partition, emulating PropertiesService.deleteAllProperties()
   deleteAllInPartition() {
-    const pattern = `${this.redisSet}-*`;
-    const keysResult = this.request(["KEYS", pattern]);
-    const keysToDelete = keysResult[0].result;
+    const keysToDelete = this.getKeys()
     if (keysToDelete && keysToDelete.length > 0) {
       const commands = ["del"].concat(keysToDelete);
       this.__request(commands);
