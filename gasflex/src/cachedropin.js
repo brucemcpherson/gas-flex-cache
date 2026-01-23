@@ -5,11 +5,24 @@ export var newCacheDropin = (...args) => new CacheDropin(...args)
 
 export var getUserIdFromToken = (accessToken) => {
   const tokenInfo = getTokenInfo(accessToken)
-  if (typeof tokenInfo.sub !== 'string' || !tokenInfo.sub) {
-    throw new Error('failed to get user id from token info')
-  }
-  return tokenInfo.sub
+  return getUserIdFromTokenInfo(tokenInfo)
 }
+
+
+const getUserIdFromTokenInfo = (tokenInfo) => {
+  // In Keyless DWD, the 'sub' field contains the email of the person being impersonated.
+  // In standard flows, it's often in the 'email' field.
+  const userId = (tokenInfo.sub && tokenInfo.sub.includes('@')) 
+    ? tokenInfo.sub 
+    : tokenInfo.email;
+
+  if (!userId) {
+    console.error('Token Info missing identity:', tokenInfo);
+    throw new Error('failed to get user id from token info');
+  }
+
+  return userId;
+};
 
 const getTokenInfo = (accessToken) => {
   if (typeof accessToken !== 'string' || !accessToken) {
