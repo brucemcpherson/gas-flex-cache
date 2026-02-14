@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import '@mcpher/gas-fakes'
 import { Exports as unitExports } from '@mcpher/unit'
 import { newCacheDropin , getUserIdFromToken } from '../../gasflex/src/cachedropin.js'

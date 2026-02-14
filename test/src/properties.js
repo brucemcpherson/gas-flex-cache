@@ -9,8 +9,8 @@
 import '@mcpher/gas-fakes'
 // this is a one off operation to store your dropin credentials
 // replace the below with your approperiate creds
-const UPSTASH_REDIS_REST_URL="https://xxx.upstash.io"
-const UPSTASH_REDIS_REST_TOKEN="xxx"
+const UPSTASH_REDIS_REST_URL="https://xx.upstash.io"
+const UPSTASH_REDIS_REST_TOKEN="xx"
 export const setUpstashSecrets = () => {
   PropertiesService.getScriptProperties().setProperty("dropin_upstash_credentials", JSON.stringify({
     "type": "upstash",
