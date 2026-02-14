@@ -7,22 +7,26 @@ export var getUserIdFromToken = (accessToken) => {
   const tokenInfo = getTokenInfo(accessToken)
   return getUserIdFromTokenInfo(tokenInfo)
 }
-
+let complained = false
 
 const getUserIdFromTokenInfo = (tokenInfo) => {
-  // In Keyless DWD, the 'sub' field contains the email of the person being impersonated.
-  // In standard flows, it's often in the 'email' field.
-  const userId = (tokenInfo.sub && tokenInfo.sub.includes('@')) 
-    ? tokenInfo.sub 
-    : tokenInfo.email;
-
+  let userId = tokenInfo.sub
   if (!userId) {
-    console.error('Token Info missing identity:', tokenInfo);
-    throw new Error('failed to get user id from token info');
-  }
 
-  return userId;
+    if (!complained)console.warn('.. couldnt find userid in token - did you allow openid scope?');
+    if (tokenInfo.email) {
+      if (!complained)console.log('...using email as userid', tokenInfo.email)
+      userId = tokenInfo.email
+    }
+    else {
+      throw `..couldnt find email or sub in token - did you allow userInfo.email scope?`
+    }
+    complained = true
+  } 
+  return userId
+
 };
+
 
 const getTokenInfo = (accessToken) => {
   if (typeof accessToken !== 'string' || !accessToken) {
